@@ -7,6 +7,9 @@
     "vscode": "^1.102.0"
   },
   "categories": ["Other"],
+  "activationEvents": [
+    "onLanguage:gptp"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [

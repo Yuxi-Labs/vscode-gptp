@@ -3,10 +3,14 @@
   "scopeName": "source.gptp",
   "fileTypes": ["gptp"],
   "patterns": [
-    {
-      "include": "source.json"
-    }
+    { "include": "#json" }
   ],
-  "repository": {},
+  "repository": {
+    "json": {
+      "patterns": [
+        { "include": "source.json" }
+      ]
+    }
+  },
   "uuid": "bc7e2170-27a4-4c59-94cb-00f000000001"
 }
