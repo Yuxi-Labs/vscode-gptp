@@ -1,0 +1,146 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/gptp.schema.json",
+  "title": "GPT Prompt Package (.gptp)",
+  "type": "object",
+  "required": ["name", "description", "version", "messages"],
+  "additionalProperties": false,
+
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The name of the prompt"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "What this prompt does"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "The version of the .gptp format being used (e.g. '1.0')"
+    },
+    "system": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional system-level instruction to the model"
+    },
+    "messages": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Ordered list of messages making up the conversation prompt",
+      "items": {
+        "type": "object",
+        "required": ["role", "content"],
+        "additionalProperties": false,
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["system", "user", "assistant"],
+            "description": "The role of the message sender"
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The actual text content of the message"
+          }
+        }
+      }
+    },
+    "variables": {
+      "type": "array",
+      "description": "Optional list of input variables the prompt requires",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Name of the variable (used as {{name}})"
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional explanation of the variable’s purpose"
+          },
+          "required": {
+            "type": "boolean",
+            "default": true
+          },
+          "example": {
+            "type": "string",
+            "description": "Optional example value for this variable"
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Optional metadata about the prompt",
+      "additionalProperties": false,
+      "properties": {
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "created_by": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "model_compatibility": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": [
+              "gpt-3.5-turbo",
+              "gpt-4",
+              "gpt-4-turbo",
+              "claude-2",
+              "claude-3-opus",
+              "llama-2",
+              "llama-3",
+              "mistral",
+              "command-r"
+            ]
+          }
+        }
+      }
+    },
+    "rendering": {
+      "type": "object",
+      "description": "Optional display and UX hints for UI-based tools",
+      "additionalProperties": false,
+      "properties": {
+        "style": {
+          "type": "string",
+          "enum": ["chat", "single-shot", "template"],
+          "description": "UI style for rendering this prompt"
+        },
+        "instructions_position": {
+          "type": "string",
+          "enum": ["top", "inline", "none"],
+          "description": "Where to place system instructions"
+        }
+      }
+    },
+    "output_format": {
+      "type": "string",
+      "enum": ["markdown", "json", "plain-text", "html"],
+      "description": "Expected format of the model output"
+    },
+    "extends": {
+      "type": "string",
+      "description": "Optional path to another .gptp file to extend"
+    }
+  }
+}

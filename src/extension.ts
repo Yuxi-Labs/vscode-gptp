@@ -1,26 +1,18 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import { registerCompletions } from './features/completion';
+import { activateDiagnostics } from './features/diagnostics';
+import { registerHoverProvider } from './features/hover';
+import { registerSnippets } from './features/snippets';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+  console.log('GPTP extension activated.');
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "vscode-gptp" is now active!');
+  context.subscriptions.push(registerCompletions());
+  activateDiagnostics(context);
+  context.subscriptions.push(registerHoverProvider());
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('vscode-gptp.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from vscode-gptp!');
-	});
-
-	context.subscriptions.push(disposable);
+  const snippetCommands = registerSnippets();
+	context.subscriptions.push(...snippetCommands);
 }
 
-// This method is called when your extension is deactivated
 export function deactivate() {}

@@ -1,14 +1,22 @@
+# Editor & test runner configs
 .vscode/**
 .vscode-test/**
-out/**
-node_modules/**
+
+# Development source
 src/**
+**/*.ts
+**/*.map
+
+# Test config
+**/.vscode-test.*
+
+# Build/test tools
 .gitignore
 .yarnrc
 esbuild.js
 vsc-extension-quickstart.md
 **/tsconfig.json
 **/eslint.config.mjs
-**/*.map
-**/*.ts
-**/.vscode-test.*
+
+# DO NOT ignore the compiled extension
+# out/** ← this line is removed intentionally

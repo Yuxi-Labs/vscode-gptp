@@ -1,21 +1,49 @@
 {
   "name": "vscode-gptp",
-  "displayName": "vscode-gptp",
-  "description": "Developer tooling for the .gptp prompt format",
+  "displayName": "GPT Prompt (GPTP)",
+  "description": "Adds support for developing GPT Prompts in Visual Studio Code.",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.102.0"
   },
-  "categories": [
-    "Other"
-  ],
-  "activationEvents": [],
+  "categories": ["Other"],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "vscode-gptp.helloWorld",
-        "title": "Hello World"
+        "command": "gptp.insertPromptScaffold",
+        "title": "GPTP: Insert Prompt Scaffold"
+      },
+      {
+        "command": "gptp.insertMessageBlock",
+        "title": "GPTP: Insert Message Block"
+      }
+    ],
+    "languages": [
+      {
+        "id": "gptp",
+        "aliases": ["GPT Prompt", "gptp"],
+        "extensions": [".gptp"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "gptp",
+        "scopeName": "source.gptp",
+        "path": "./syntaxes/gptp.tmLanguage.json"
+      }
+    ],
+    "jsonValidation": [
+      {
+        "fileMatch": ["*.gptp"],
+        "url": "./schema/gptp.schema.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "gptp",
+        "path": "./snippets/gptp.code-snippets"
       }
     ]
   },
@@ -45,5 +73,6 @@
     "typescript": "^5.8.3",
     "@vscode/test-cli": "^0.0.11",
     "@vscode/test-electron": "^2.5.2"
-  }
+  },
+  "keywords": ["gpt", "prompt", "openai", "gptp", "chatgpt", "ai", "llm"]
 }

@@ -1,0 +1,57 @@
+{
+  "New GPTP File": {
+    "prefix": "gptp-new",
+    "body": [
+      "{",
+      "  \"name\": \"${1:Prompt Name}\",",
+      "  \"description\": \"${2:Describe what this prompt does}\",",
+      "  \"version\": \"1.0\",",
+      "  \"model\": \"${3:gpt-4}\",",
+      "  \"temperature\": ${4:0.7},",
+      "  \"variables\": [",
+      "    {",
+      "      \"name\": \"${5:topic}\",",
+      "      \"description\": \"${6:The topic or subject}\",",
+      "      \"required\": true,",
+      "      \"example\": \"${7:climate change}\"",
+      "    }",
+      "  ],",
+      "  \"messages\": [",
+      "    {",
+      "      \"role\": \"system\",",
+      "      \"content\": \"You are a helpful assistant.\"",
+      "    },",
+      "    {",
+      "      \"role\": \"user\",",
+      "      \"content\": \"Explain {{${5:topic}}} clearly.\"",
+      "    }",
+      "  ]",
+      "}"
+    ],
+    "description": "Create a full .gptp file scaffold"
+  },
+
+  "Insert Message Block": {
+    "prefix": "gptp-msg",
+    "body": [
+      "{",
+      "  \"role\": \"${1|system,user,assistant|}\",",
+      "  \"content\": \"${2:Message content here}\"",
+      "}"
+    ],
+    "description": "Insert a single message block"
+  },
+
+  "Insert Variable Block": {
+    "prefix": "gptp-var",
+    "body": [
+      "{",
+      "  \"name\": \"${1:variableName}\",",
+      "  \"description\": \"${2:What this variable does}\",",
+      "  \"required\": ${3:true},",
+      "  \"example\": \"${4:example value}\"",
+      "}"
+    ],
+    "description": "Insert an input variable definition"
+  }
+}

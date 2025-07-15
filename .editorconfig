@@ -1,0 +1,26 @@
+# EditorConfig is awesome: https://editorconfig.org
+root = true
+
+[*]
+end_of_line = lf
+insert_final_newline = true
+charset = utf-8
+
+# 2-space indentation for TypeScript, Markdown, ES Modules
+[*.{ts,md,mjs,editorconfig}]
+indent_style = space
+indent_size = 2
+
+# Tab indentation for Makefile
+[Makefile]
+indent_style = tab
+
+# Override for JS files in lib/ directory
+[lib/**/*.js]
+indent_style = space
+indent_size = 2
+
+# Explicit config for known files
+[{package.json}]
+indent_style = space
+indent_size = 2

@@ -1,3 +1,18 @@
+# IDE/editor configs
 .idea/
 .vscode/
+
+# Dependencies
 node_modules/
+
+# Build output
+dist/
+
+# Test VS Code instance data
+.vscode-test/
+
+# Logs
+*.log
+
+# TypeScript cache
+*.tsbuildinfo
