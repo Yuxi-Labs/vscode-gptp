@@ -14,7 +14,7 @@ Commercial use of any kind is strictly prohibited. This includes but is not limi
 No sublicense or redistribution is allowed beyond the Permitted Use.
 
 All copies or substantial portions of the software must retain this license and the following notice:
-“This software is licensed under the Yuxi Labs Academic Use License v1.0. Commercial use is prohibited.”
+“This software is licensed under the Yuxi Labs License. Commercial use is prohibited.”
 
 Use of this software does not grant any rights to the “GPTP” name, the “Yuxi Labs” brand, or any associated
 trademarks or service marks.
