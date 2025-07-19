@@ -11,11 +11,16 @@ export function registerSnippets(): vscode.Disposable[] {
 		const scaffold = `{
   "name": "New Prompt",
   "description": "Describe your prompt here.",
+  "version": "1.0",
   "model": "gpt-4",
   "temperature": 0.7,
-  "input": {
-    "variable1": "value"
-  },
+  "variables": [
+    {
+      "name": "variable1",
+      "description": "What should the assistant explain?",
+      "example": "quantum computing"
+    }
+  ],
   "messages": [
     {
       "role": "system",

@@ -37,14 +37,19 @@ function validateDocument(
 			diagnostics.push(createDiagnostic(doc, line, `"model" is required.`));
 		}
 
-		// Rule: messages must contain at least one 'system' and one 'user'
+		// Rule: messages must contain at least one 'system' or top-level 'system', and one 'user'
 		if (Array.isArray(json.messages)) {
 			const roles = json.messages.map((m: any) => m.role);
-			if (!roles.includes('system')) {
+			
+			const hasSystem = roles.includes('system') || !!json.system;
+			const hasUser = roles.includes('user');
+
+			if (!hasSystem) {
 				const line = findLine(doc, '"messages"');
-				diagnostics.push(createDiagnostic(doc, line, `No "system" message found.`));
+				diagnostics.push(createDiagnostic(doc, line, `Missing system instructions. Add a "system" message or a top-level "system" field.`));
 			}
-			if (!roles.includes('user')) {
+
+			if (!hasUser) {
 				const line = findLine(doc, '"messages"');
 				diagnostics.push(createDiagnostic(doc, line, `No "user" message found.`));
 			}

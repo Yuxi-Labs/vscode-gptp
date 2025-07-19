@@ -1,11 +1,11 @@
-# GPT Prompt (GPTP)
+# GPTP Extension for VS Code
 
-This extension adds support for `.gptp` files in Visual Studio Code.
+This extension adds support for developing GPTPs in VS Code.
 
 ## Features
 
 - Syntax highlighting
-- JSON schema validation
+- GPTP schema validation
 - Auto-completion for roles (`system`, `user`, `assistant`)
 - Hover tooltips
 - Snippets
