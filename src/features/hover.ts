@@ -1,40 +1,58 @@
 import * as vscode from 'vscode';
+import { getInspection } from '../services/gptpService.js';
 
 const HOVER_HELP: Record<string, string> = {
-	"model": "`model` — The GPT model to use (e.g., `gpt-4`, `gpt-3.5-turbo`).",
-	"temperature": "`temperature` — Controls randomness. Range: 0.0 (deterministic) to 1.0 (creative).",
-	"messages": "`messages` — Array of message blocks forming the conversation history.",
-	"role": "`role` — Message sender: one of `system`, `user`, or `assistant`.",
-	"content": "`content` — The actual text of the message.",
-	"name": "`name` — Optional identifier for the prompt.",
-	"description": "`description` — Optional explanation or summary of the prompt.",
-	"version": "`version` — The version of the .gptp format being used (e.g., `1.0`).",
-	"system": "`system` — Instruction that sets assistant behavior (optional if included in messages).",
-	"variables": "`variables` — List of user-provided input values the prompt can use.",
-	"required": "`required` — If true, this variable must be supplied at runtime.",
-	"example": "`example` — Example value shown for this variable.",
-	"rendering": "`rendering` — Optional UI hints for tools displaying this prompt.",
-	"instructions_position": "`instructions_position` — Controls where system instructions appear: `top`, `inline`, or `none`.",
-	"style": "`style` — Display style for UI: `chat`, `single-shot`, or `template`.",
-	"output_format": "`output_format` — Expected output style: `json`, `markdown`, `plain-text`, or `html`.",
-	"metadata": "`metadata` — Optional data about the author, creation time, and model compatibility.",
-	"created_by": "`created_by` — Author of this prompt.",
-	"created_at": "`created_at` — ISO timestamp when the prompt was created.",
-	"model_compatibility": "`model_compatibility` — List of compatible LLMs (e.g., `gpt-4`, `claude-3-opus`).",
-	"tags": "`tags` — Freeform list of keyword labels for the prompt.",
-	"extends": "`extends` — Path to another .gptp file this prompt builds upon."
+	"$doctype": "`$doctype` — Format identifier; must be `gptp`.",
+	"schemaVersion": "`schemaVersion` — The GPTP schema version (e.g., `1.2.0`).",
+	"promptVersion": "`promptVersion` — Your prompt content version (semantic).",
+	"title": "`title` — Human-readable name of this prompt.",
+	"description": "`description` — Summary of what this prompt does.",
+	"messages": "`messages` — Array of { role, content } turns forming the conversation.",
+	"role": "`role` — One of `system`, `user`, or `assistant`.",
+	"content": "`content` — Text content of a message (supports {{variable}} templates).",
+	"system": "`system` — Optional global instruction to the assistant.",
+	"variables": "`variables` — Input parameters referenced via {{var}} in content.",
+	"required": "`required` — Whether a variable must be provided at runtime.",
+	"example": "`example` — Example value for a variable.",
+	"output_format": "`output_format` — Expected output format (`markdown`, `json`, `html`, `plain-text`).",
+	"output_schema": "`output_schema` — JSON Schema for validating output structure.",
+	"extends": "`extends` — Relative path to a base .gptp file.",
+	"tools": "`tools` — Optional tool/function declarations for tool-augmented prompts.",
+	"assets": "`assets` — Attachments (path + MIME type).",
+	"vision": "`vision` — Expected image inputs.",
+	"tests": "`tests` — Self-checks for prompt output.",
+	"license": "`license` — SPDX license identifier (e.g., MIT).",
 };
 
 export function registerHoverProvider(): vscode.Disposable {
-	return vscode.languages.registerHoverProvider('gptp', {
-		provideHover(document, position, token) {
-			const range = document.getWordRangeAtPosition(position, /"[^"]+"/);
-			if (!range) return;
+		return vscode.languages.registerHoverProvider('gptp', {
+			async provideHover(document: vscode.TextDocument, position: vscode.Position) {
+			// Key hovers
+			const keyRange = document.getWordRangeAtPosition(position, /"[^"]+"/);
+			if (keyRange) {
+				const key = document.getText(keyRange).replace(/"/g, '');
+				const doc = HOVER_HELP[key];
+				if (doc) {
+					return new vscode.Hover(new vscode.MarkdownString(doc));
+				}
+			}
 
-			const key = document.getText(range).replace(/"/g, '');
-			const doc = HOVER_HELP[key];
-			if (doc) {
-				return new vscode.Hover(new vscode.MarkdownString(doc));
+			// Variable placeholder hovers inside strings
+			const varRange = document.getWordRangeAtPosition(position, /\{\{[a-zA-Z_][a-zA-Z0-9_]*\}\}/);
+			if (varRange) {
+				const placeholder = document.getText(varRange);
+				const name = placeholder.replace(/[{}]/g, '');
+				const inspect = await getInspection(document.getText());
+				const found = (inspect?.variables || []).find((v: any) => (v.name || v) === name);
+				if (found) {
+					const md = new vscode.MarkdownString();
+					md.appendMarkdown(`Variable: \`${name}\`\n\n`);
+					if (found.description) { md.appendMarkdown(`${found.description}\n\n`); }
+					if (typeof found.required === 'boolean') { md.appendMarkdown(`Required: **${found.required ? 'yes' : 'no'}**\n\n`); }
+					if (found.example) { md.appendMarkdown(`Example: \`${found.example}\``); }
+					md.isTrusted = true;
+					return new vscode.Hover(md);
+				}
 			}
 		}
 	});

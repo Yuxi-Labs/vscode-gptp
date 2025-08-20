@@ -6,31 +6,22 @@ export function registerSnippets(): vscode.Disposable[] {
 	// Insert a basic .gptp scaffold
 	const insertPromptScaffold = vscode.commands.registerCommand('gptp.insertPromptScaffold', () => {
 		const editor = vscode.window.activeTextEditor;
-		if (!editor) return;
+		if (!editor) {return;}
 
 		const scaffold = `{
-  "name": "New Prompt",
-  "description": "Describe your prompt here.",
-  "version": "1.0",
-  "model": "gpt-4",
-  "temperature": 0.7,
+  "$doctype": "gptp",
+  "schemaVersion": "1.2.0",
+  "promptVersion": "1.0.0",
+  "title": "New Prompt",
+  "description": "Describe what this prompt does.",
+  "system": "You are a helpful assistant.",
   "variables": [
-    {
-      "name": "variable1",
-      "description": "What should the assistant explain?",
-      "example": "quantum computing"
-    }
+    { "name": "topic", "description": "Topic to explain", "required": true, "example": "quantum computing" }
   ],
   "messages": [
-    {
-      "role": "system",
-      "content": "You are a helpful assistant."
-    },
-    {
-      "role": "user",
-      "content": "Explain {{variable1}}."
-    }
-  ]
+    { "role": "user", "content": "Explain {{topic}}." }
+  ],
+  "output_format": "markdown"
 }`;
 		editor.insertSnippet(new vscode.SnippetString(scaffold));
 	});
@@ -39,7 +30,7 @@ export function registerSnippets(): vscode.Disposable[] {
 	// Insert a message block
 	const insertMessage = vscode.commands.registerCommand('gptp.insertMessageBlock', () => {
 		const editor = vscode.window.activeTextEditor;
-		if (!editor) return;
+		if (!editor) {return;}
 
 		const messageBlock = `{
   "role": "$1",

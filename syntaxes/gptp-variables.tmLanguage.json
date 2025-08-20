@@ -1,0 +1,12 @@
+{
+  "name": "GPTP Variables",
+  "scopeName": "gptp.injection.variables",
+  "injectionSelector": "L:source.gptp string.quoted.double.json",
+  "patterns": [
+    {
+      "name": "variable.parameter.gptp",
+      "match": "\\{\\{[a-zA-Z_][a-zA-Z0-9_]*\\}\\}"
+    }
+  ],
+  "uuid": "bc7e2170-27a4-4c59-94cb-00f0000000aa"
+}

@@ -1,19 +1,15 @@
 {
-  "name": "Short Test",
+  "$doctype": "gptp",
+  "schemaVersion": "1.2.0",
+  "promptVersion": "1.0.0",
+  "title": "Short Test",
   "description": "Minimal valid prompt for extension testing.",
-  "model": "gpt-4",
-  "temperature": 0.7,
-  "input": {
-    "topic": "AI prompts"
-  },
+  "system": "You are a helpful assistant.",
+  "variables": [
+    { "name": "topic", "description": "Subject to explain", "required": true, "example": "AI prompts" }
+  ],
   "messages": [
-    {
-      "role": "system",
-      "content": "You are a helpful assistant."
-    },
-    {
-      "role": "user",
-      "content": "Explain {{topic}} in one sentence."
-    }
-  ]
+    { "role": "user", "content": "Explain {{topic}} in one sentence." }
+  ],
+  "output_format": "markdown"
 }

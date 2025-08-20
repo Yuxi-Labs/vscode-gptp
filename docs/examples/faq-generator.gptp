@@ -1,0 +1,23 @@
+{
+  "$doctype": "gptp",
+  "schemaVersion": "1.2.0",
+  "promptVersion": "1.1.0",
+  "title": "FAQ Generator (Extended)",
+  "description": "Generates a comprehensive FAQ for a given topic with audience, tone, style, difficulty, and length controls.",
+  "system": "You are a meticulous assistant that drafts clear, concise FAQs. Follow the user's constraints precisely and avoid fabrications.",
+  "variables": [
+    { "name": "topic", "description": "Subject of the FAQ.", "required": true, "example": "cloud computing" },
+    { "name": "audience", "description": "Target audience.", "required": true, "example": "beginner developers" },
+    { "name": "tone", "description": "Tone of voice.", "required": false, "example": "neutral and helpful" },
+    { "name": "difficulty", "description": "Overall difficulty level.", "required": false, "example": "introductory" },
+    { "name": "style", "description": "Formatting style.", "required": false, "example": "bullet points" },
+    { "name": "num_questions", "description": "Number of FAQ entries to produce.", "required": true, "example": "12" }
+  ],
+  "messages": [
+    { "role": "system", "content": "Always provide factual, structured answers and avoid speculation." },
+    { "role": "user", "content": "Create an FAQ about {{topic}} for {{audience}}. Use a {{tone}} tone, with a {{difficulty}} level, formatted as {{style}}. Include {{num_questions}} Q&A items." },
+    { "role": "assistant", "content": "Acknowledged. I will produce the requested FAQ with the specified constraints." },
+    { "role": "user", "content": "Ensure answers are concise (1–3 sentences) and avoid marketing language." }
+  ],
+  "output_format": "markdown"
+}

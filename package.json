@@ -2,27 +2,27 @@
   "name": "vscode-gptp",
   "displayName": "GPT Prompt (GPTP)",
   "description": "Adds support for developing GPT Prompts in Visual Studio Code.",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "publisher": "yuxi-labs",
   "icon": "assets/images/icons/gptp-icon.png",
-"repository": {
-  "type": "git",
-  "url": "https://github.com/Yuxi-Labs/gptp"
-},
-"bugs": {
-  "url": "https://github.com/Yuxi-Labs/gptp/issues"
-},
-"homepage": "https://yuxilabs.com/gptp",
-"license": "Yuxi Labs License",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Yuxi-Labs/gptp"
+  },
+  "bugs": {
+    "url": "https://github.com/Yuxi-Labs/gptp/issues"
+  },
+  "homepage": "https://yuxilabs.com/gptp",
+  "license": "Yuxi Labs License",
   "engines": {
     "vscode": "^1.102.0"
   },
-  "categories": ["Other"],
+  "categories": [
+    "Other"
+  ],
   "activationEvents": [
-    "onLanguage:gptp",
-    "onCommand:gptp.newPrompt",
-  "workspaceContains:**/*.gptp",
-  "*"
+    "workspaceContains:**/*.gptp"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -36,15 +36,36 @@
         "title": "GPTP: Insert Message Block"
       },
       {
-  "command": "gptp.newPrompt",
-  "title": "New GPT Prompt File"
-}
+        "command": "gptp.newPrompt",
+        "title": "New GPT Prompt File"
+      },
+      {
+        "command": "gptp.validate",
+        "title": "GPTP: Validate Current Prompt"
+      },
+      {
+        "command": "gptp.executePreview",
+        "title": "GPTP: Execute Preview (Resolved Messages)"
+      },
+      {
+        "command": "gptp.migrate",
+        "title": "GPTP: Migrate Prompt to v1.2.0"
+      },
+      {
+        "command": "gptp.diff",
+        "title": "GPTP: Diff Prompt Keys (2 open docs)"
+      }
     ],
     "languages": [
       {
         "id": "gptp",
-        "aliases": ["GPT Prompt", "gptp"],
-        "extensions": [".gptp"],
+        "aliases": [
+          "GPT Prompt",
+          "gptp"
+        ],
+        "extensions": [
+          ".gptp"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],
@@ -53,12 +74,21 @@
         "language": "gptp",
         "scopeName": "source.gptp",
         "path": "./syntaxes/gptp.tmLanguage.json"
+      },
+      {
+        "scopeName": "gptp.injection.variables",
+        "path": "./syntaxes/gptp-variables.tmLanguage.json",
+        "injectTo": [
+          "source.gptp"
+        ]
       }
     ],
     "jsonValidation": [
       {
-        "fileMatch": ["*.gptp"],
-        "url": "./schema/gptp.schema.json"
+        "fileMatch": [
+          "*.gptp"
+        ],
+        "url": "https://raw.githubusercontent.com/Yuxi-Labs/gptp/refs/tags/v1.2.0/schema/gptp.schema.json"
       }
     ],
     "snippets": [
@@ -69,31 +99,45 @@
     ]
   },
   "scripts": {
-    "publish": "npm run build && npx vsce package",
-    "compile": "npm run check-types && npm run lint && node esbuild.js",
+  "publish": "npm run build && npx vsce package",
+  "compile": "npm run check-types && npm run lint && tsc -p . && npm run copy:assets",
     "watch": "npm-run-all -p watch:*",
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
-    "build": "npm run check-types && npm run lint && node esbuild.js --production",
+  "build": "npm run check-types && npm run lint && tsc -p . && npm run copy:assets",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
+    "copy:assets": "node -e \"require('fs').cpSync('src/schema','dist/schema',{recursive:true})\"",
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.102.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
+    "@types/vscode": "^1.102.0",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
     "@typescript-eslint/parser": "^8.31.1",
-    "eslint": "^9.25.1",
-    "esbuild": "^0.25.3",
-    "npm-run-all": "^4.1.5",
-    "typescript": "^5.8.3",
     "@vscode/test-cli": "^0.0.11",
-    "@vscode/test-electron": "^2.5.2"
+    "@vscode/test-electron": "^2.5.2",
+    "esbuild": "^0.25.3",
+    "eslint": "^9.25.1",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.8.3"
   },
-  "keywords": ["gpt", "prompt", "openai", "gptp", "chatgpt", "ai", "llm"]
+  "keywords": [
+    "gpt",
+    "prompt",
+    "openai",
+    "gptp",
+    "chatgpt",
+    "ai",
+    "llm"
+  ],
+  "dependencies": {
+    "@yuxilabs/gptp-core": "^0.2.1",
+    "ajv": "^8.17.1",
+    "jsonc-parser": "^3.2.1"
+  }
 }

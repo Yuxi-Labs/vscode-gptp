@@ -1,17 +1,22 @@
 {
   "compilerOptions": {
-    "module": "Node16",
+  "module": "ESNext",
     "target": "ES2022",
-    "lib": ["ES2022"],
+  "lib": ["ES2022", "DOM"],
+  "types": ["node", "vscode", "mocha"],
     "sourceMap": true,
     "rootDir": "src",
     "outDir": "dist",
     "strict": true,
 
     /* Module resolution */
-    "moduleResolution": "Node16",
+  "moduleResolution": "Bundler",
     "esModuleInterop": true,
     "resolveJsonModule": true,
+    "typeRoots": [
+      "./src/types",
+      "./node_modules/@types"
+    ],
 
     /* Clean up output */
     "noEmitOnError": true,
