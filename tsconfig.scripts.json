@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "target": "ES2022",
+    "moduleResolution": "Bundler",
+    "esModuleInterop": true,
+    "rootDir": "scripts",
+    "outDir": "dist/scripts",
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "include": ["scripts/**/*.ts"]
+}

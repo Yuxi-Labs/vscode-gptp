@@ -1,7 +1,7 @@
 # GPT Prompt (GPTP) for VS Code
 
 <p>
-  <img src="https://img.shields.io/github/actions/workflow/status/Yuxi-Labs/vscode-gptp/ci.yml?branch=production" alt="Build Status" />
+  <img src="https://img.shields.io/github/actions/workflow/status/Yuxi-Labs/vscode-gptp/continuous-integration.yml?branch=production" alt="Build Status" />
   <img src="https://img.shields.io/github/v/release/Yuxi-Labs/vscode-gptp?include_prereleases&sort=semver" alt="Latest Release" />
   <img src="https://img.shields.io/github/issues/Yuxi-Labs/vscode-gptp" alt="Open Issues" />
   <img src="https://img.shields.io/github/issues-pr/Yuxi-Labs/vscode-gptp" alt="Pull Requests" />
