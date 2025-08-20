@@ -60,7 +60,40 @@ Create a new GPTP document using the built‑in command “New GPT Prompt File�
 
 As you type, the Problems panel will surface issues from the schema and semantic checks. Try referencing a variable that hasn’t been declared or declaring one you don’t use to see quick fixes in action.
 
-## Commands
+
+## Running GPTP prompts with LM Studio
+
+You can send your `.gptp` prompt to a local LLM running in [LM Studio](https://lmstudio.ai/) using the included runner script. This lets you preview real model completions for your prompt, with variable substitution, directly from the command line.
+
+### Prerequisites
+
+- LM Studio is running (default: http://localhost:1234/v1) and your desired model (e.g., `openai/gpt-oss-20b`) is loaded.
+- Your prompt file exists (e.g., `docs/examples/faq-generator.gptp`).
+
+### Example usage
+
+In your project root, run:
+
+```sh
+npm run lmstudio -- --file docs/examples/faq-generator.gptp --var topic="Artificial Intelligence" --var audience="Skeptics"
+```
+
+You should see the LLM's response printed in your terminal.
+
+#### Notes
+- You can supply as many `--var key=value` arguments as your prompt requires.
+- The runner will always POST to the correct OpenAI-compatible endpoint (`/v1/chat/completions`).
+- If LM Studio is running on a different port or host, use the `--base` flag:
+  ```sh
+  npm run lmstudio -- --file ... --base http://localhost:5678/v1 ...
+  ```
+
+### Troubleshooting
+- If you see an error about an unexpected endpoint, make sure the base URL ends with `/v1`.
+- If you get a connection error, check that LM Studio is running and the model is loaded.
+- If your prompt expects variables, supply them with `--var` as shown above.
+
+---
 
 The command palette (Ctrl/Cmd+Shift+P) provides several helpful actions while authoring:
 
