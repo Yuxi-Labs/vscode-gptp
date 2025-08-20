@@ -5,9 +5,9 @@ name: App CI
 
 on:
   push:
-    branches: [ "development", "production" ]
+    branches: [ "release/v0.1.0", "production" ]
   pull_request:
-    branches: [ "development", "production" ]
+    branches: [ "release/v0.1.0", "production" ]
 
 jobs:
   build:
