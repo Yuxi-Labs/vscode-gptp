@@ -114,6 +114,72 @@ export function formatOutput(raw: any, opts?: { outputFormat?: 'markdown'|'json'
   });
 }
 
+// Execute with provider calls enabled (run:true). Throws if SDK not available.
+export async function executeRun(
+  text: string,
+  input?: Record<string, any>,
+  options?: {
+    validate?: boolean;
+    timeoutMs?: number;
+    retry?: { retries?: number; baseDelayMs?: number; maxDelayMs?: number; jitter?: boolean };
+    lockfilePath?: string;
+    httpFallback?: {
+      baseUrl: string;
+      model: string;
+      temperature?: number;
+      apiKey?: string;
+    };
+  }
+): Promise<{ resolvedMessages: any[]; modelOutput: any; renderedPromptHash?: string; variablesHash?: string; usedFallback?: boolean }>
+{
+  const obj = JSON.parse(text);
+  try {
+    const sdk = await core();
+    const fn = (sdk as any).executePrompt || (sdk as any).default?.executePrompt;
+    if (!fn) { throw new Error('missing executePrompt'); }
+    const res = await fn(obj, {
+      input: input || {},
+      run: true,
+      validate: options?.validate ?? true,
+      timeoutMs: options?.timeoutMs,
+      retry: options?.retry,
+      lockfilePath: options?.lockfilePath,
+    });
+  return { ...res, usedFallback: false };
+  } catch (err) {
+    // HTTP fallback to OpenAI-compatible API if configured
+  const fb = options?.httpFallback;
+  if (!fb || !fb.baseUrl || !fb.model) {
+      throw err;
+    }
+    // Build resolved messages locally (simple interpolation fallback)
+    const vars = buildVariableMap(obj);
+    const resolved = Array.isArray(obj.messages) ? obj.messages.map((m: any) => ({
+      role: m.role,
+      content: typeof m.content === 'string' ? interpolate(m.content, { ...vars, ...(input || {}) }) : m.content
+    })) : [];
+    const base = fb.baseUrl.replace(/\/$/, '');
+    const url = base + '/chat/completions';
+    const body = {
+      model: fb.model,
+      messages: resolved.map((m: any) => ({ role: m.role, content: m.content })),
+      temperature: typeof fb.temperature === 'number' ? fb.temperature : 0.7,
+    } as any;
+    const headers: Record<string, string> = {
+      'content-type': 'application/json',
+    };
+    if (fb.apiKey) { headers['authorization'] = `Bearer ${fb.apiKey}`; }
+    const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) } as any);
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      throw new Error(`HTTP fallback failed: ${res.status} ${res.statusText} ${txt}`);
+    }
+    const data = await res.json();
+    const content = data?.choices?.[0]?.message?.content ?? data;
+  return { resolvedMessages: resolved, modelOutput: content, usedFallback: true };
+  }
+}
+
 export async function migrateTo120Text(text: string) {
   const obj = JSON.parse(text);
   const sdk = await core();
@@ -164,8 +230,9 @@ async function validateWithLocalSchema(obj: any): Promise<ValidationResult | und
   try {
     const schema = await readBundledSchema();
     if (!schema) { return undefined; }
-  const Ajv = (await import('ajv')).default;
-  const ajv = new Ajv({ allErrors: true });
+  const modAjv: any = await import('ajv');
+  const AjvCtor: any = (modAjv as any)?.default ?? (modAjv as any);
+  const ajv: any = new AjvCtor({ allErrors: true });
   const validate = ajv.compile(schema as any);
     const valid = validate(obj) as boolean;
     const text = JSON.stringify(obj);
@@ -234,6 +301,6 @@ function buildVariableMap(obj: any): Record<string, any> {
 function interpolate(s: string, ctx: Record<string, any>): string {
   return s.replace(/\{\{([a-zA-Z_][a-zA-Z0-9_]*)\}\}/g, (_, key) => {
     const v = ctx[key];
-    return v == null ? '' : String(v);
+  return (v === null || v === undefined) ? '' : String(v);
   });
 }

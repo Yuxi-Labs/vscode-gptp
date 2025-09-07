@@ -4,9 +4,15 @@ import { activateDiagnostics } from './features/diagnostics.js';
 import { registerHoverProvider } from './features/hover.js';
 import { registerSnippets } from './features/snippets.js';
 import { registerCodeActions } from './features/codeActions.js';
-import { validateText, executePreview as sdkExecutePreview, migrateTo120Text, diffPromptKeysText } from './services/gptpService.js';
+import { validateText, executePreview as sdkExecutePreview, migrateTo120Text, diffPromptKeysText, getInspectionSummary, executeRun, formatOutput } from './services/gptpService.js';
+
+// Remember last inputs per document for quick reuse
+const lastInputsByDoc = new Map<string, Record<string, string>>();
 
 export function activate(context: vscode.ExtensionContext) {
+  const log = vscode.window.createOutputChannel('GPTP');
+  context.subscriptions.push(log);
+  log.appendLine(`[GPTP] Activated. VS Code ${vscode.version}, Node ${process.versions.node}`);
   console.log('GPTP extension activated.');
 
   context.subscriptions.push(registerCompletions());
@@ -96,6 +102,143 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  // Execute with model (run:true)
+  context.subscriptions.push(
+  vscode.commands.registerCommand('gptp.executeRun', async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) { return; }
+      const text = editor.document.getText();
+      // Prompt for missing variables based on inspection (required only)
+      const summary = await getInspectionSummary(text);
+      const docKey = editor.document.uri.toString();
+      const required = summary?.required || [];
+      let inputs: Record<string, string> = {};
+      const last = lastInputsByDoc.get(docKey);
+      if (last && Object.keys(last).length > 0) {
+        const pick = await vscode.window.showQuickPick([
+          { label: 'Run again with last inputs', description: 'Reuse inputs from last run' },
+          { label: 'Enter inputs…', description: 'Prompt for required variables' },
+        ], { placeHolder: 'Choose how to provide variable inputs' });
+        if (!pick) { return; }
+        if (pick.label.startsWith('Run again')) {
+          // Start with last inputs, but ensure required are present
+          inputs = { ...last };
+          for (const name of required) {
+            const current = inputs[name];
+            if (current === undefined || current === null || current === '') {
+              const val = await vscode.window.showInputBox({ prompt: `Value for required variable: ${name}`, ignoreFocusOut: true });
+              if (val !== undefined && val !== null) { inputs[name] = val; }
+            }
+          }
+        } else {
+          // Fresh prompts
+          inputs = {};
+          for (const name of required) {
+            const val = await vscode.window.showInputBox({ prompt: `Value for required variable: ${name}`, ignoreFocusOut: true });
+            if (val !== undefined && val !== null) { inputs[name] = val; }
+          }
+        }
+      } else {
+        // No prior inputs; prompt fresh
+        inputs = {};
+        for (const name of required) {
+          const val = await vscode.window.showInputBox({ prompt: `Value for required variable: ${name}`, ignoreFocusOut: true });
+          if (val !== undefined && val !== null) { inputs[name] = val; }
+        }
+      }
+      // Read configuration for run options
+      const cfg = vscode.workspace.getConfiguration('gptp');
+      const validate = cfg.get<boolean>('run.validate', true);
+      const timeoutMs = cfg.get<number>('run.timeoutMs', 60000);
+      const retries = cfg.get<number>('run.retry.retries', 2);
+      const baseDelayMs = cfg.get<number>('run.retry.baseDelayMs', 250);
+      const maxDelayMs = cfg.get<number>('run.retry.maxDelayMs', 2000);
+      const jitter = cfg.get<boolean>('run.retry.jitter', true);
+      const lockfilePath = cfg.get<string>('run.lockfilePath', '');
+  const httpEnable = cfg.get<boolean>('http.enableFallback', false);
+  const httpBase = cfg.get<string>('http.baseUrl', '');
+  const httpModel = cfg.get<string>('http.model', '');
+    const httpTemp = cfg.get<number>('http.temperature', 0.7);
+    const httpKey = cfg.get<string>('http.apiKey', '');
+      try {
+        const res = await executeRun(text, inputs, {
+          validate,
+          timeoutMs,
+          retry: { retries, baseDelayMs, maxDelayMs, jitter },
+      lockfilePath: lockfilePath || undefined,
+          httpFallback: httpEnable && httpBase && httpModel ? { baseUrl: httpBase, model: httpModel, temperature: httpTemp, apiKey: httpKey || undefined } : undefined,
+        });
+        if (res.usedFallback) {
+          vscode.window.setStatusBarMessage('GPTP: Used HTTP fallback', 4000);
+        }
+        // Save inputs for next time
+        lastInputsByDoc.set(docKey, { ...inputs });
+        // Try to format using prompt-declared output format when possible
+        let formatted = '';
+        try {
+          formatted = await formatOutput(res.modelOutput, {} as any);
+        } catch {
+          formatted = String(res.modelOutput ?? '');
+        }
+        const content = `--- resolvedMessages ---\n\n${JSON.stringify(res.resolvedMessages, null, 2)}\n\n--- modelOutput (formatted) ---\n\n${formatted}`;
+        const doc = await vscode.workspace.openTextDocument({ language: 'markdown', content: '```markdown\n' + content + '\n```' });
+        await vscode.window.showTextDocument(doc, { preview: true });
+      } catch (e: any) {
+        // Log details for debugging SDK ESM/provider issues
+        log.appendLine('[GPTP] Execute run error: ' + (e?.stack || e?.message || String(e)));
+        const msg = e?.message || String(e);
+        // If SDK ESM/provider import failed, offer to configure HTTP fallback to a real provider and retry
+        if (/Cannot use import statement outside a module/i.test(msg) || /executePrompt not available/i.test(msg)) {
+          log.appendLine('[GPTP] Detected ESM/provider import failure in SDK path.');
+          const choice = await vscode.window.showErrorMessage(
+            'GPTP: SDK execution failed. Configure HTTP fallback to a provider (e.g., OpenAI) and retry?',
+            'Configure & Retry',
+            'Open Settings',
+            'Dismiss'
+          );
+          if (choice === 'Configure & Retry') {
+            const httpBase = await vscode.window.showInputBox({ prompt: 'HTTP base URL (e.g., https://api.openai.com/v1)', ignoreFocusOut: true });
+            if (!httpBase) { return; }
+            const httpModel = await vscode.window.showInputBox({ prompt: 'Model (e.g., gpt-4o-mini)', ignoreFocusOut: true });
+            if (!httpModel) { return; }
+            const httpKey = await vscode.window.showInputBox({ prompt: 'API Key (Bearer)', password: true, ignoreFocusOut: true });
+            const cfg = vscode.workspace.getConfiguration('gptp');
+            await cfg.update('http.enableFallback', true, vscode.ConfigurationTarget.Global);
+            await cfg.update('http.baseUrl', httpBase, vscode.ConfigurationTarget.Global);
+            await cfg.update('http.model', httpModel, vscode.ConfigurationTarget.Global);
+            if (httpKey) { await cfg.update('http.apiKey', httpKey, vscode.ConfigurationTarget.Global); }
+            // Retry once
+            vscode.window.setStatusBarMessage('GPTP: Retrying with HTTP fallback…', 4000);
+            try {
+              const res2 = await executeRun(text, inputs, {
+                validate,
+                timeoutMs,
+                retry: { retries, baseDelayMs, maxDelayMs, jitter },
+                lockfilePath: lockfilePath || undefined,
+                httpFallback: { baseUrl: httpBase, model: httpModel, temperature: httpTemp, apiKey: httpKey || undefined },
+              });
+              if (res2.usedFallback) { vscode.window.setStatusBarMessage('GPTP: Used HTTP fallback', 4000); }
+              lastInputsByDoc.set(docKey, { ...inputs });
+              let formatted = '';
+              try { formatted = await formatOutput(res2.modelOutput, {} as any); } catch { formatted = String(res2.modelOutput ?? ''); }
+              const content = `--- resolvedMessages ---\n\n${JSON.stringify(res2.resolvedMessages, null, 2)}\n\n--- modelOutput (formatted) ---\n\n${formatted}`;
+              const doc = await vscode.workspace.openTextDocument({ language: 'markdown', content: '```markdown\n' + content + '\n```' });
+              await vscode.window.showTextDocument(doc, { preview: true });
+              return;
+            } catch (e2: any) {
+              vscode.window.showErrorMessage(`GPTP: Execute run failed (fallback): ${e2?.message || e2}`);
+              return;
+            }
+          } else if (choice === 'Open Settings') {
+            await vscode.commands.executeCommand('workbench.action.openSettings', '@ext:yuxi-labs.vscode-gptp gptp.http');
+            return;
+          }
+        }
+        vscode.window.showErrorMessage(`GPTP: Execute run failed: ${msg}`);
+      }
+    })
+  );
+
   // Migrate command
   context.subscriptions.push(
     vscode.commands.registerCommand('gptp.migrate', async () => {
@@ -103,7 +246,7 @@ export function activate(context: vscode.ExtensionContext) {
       if (!editor) { return; }
       try {
         const migratedText = await migrateTo120Text(editor.document.getText());
-        const fullRange = new vscode.Range(0, 0, editor.document.lineCount, 0);
+  const fullRange = new vscode.Range(0, 0, editor.document.lineCount, 0);
   await editor.edit((b: vscode.TextEditorEdit) => b.replace(fullRange, migratedText));
         vscode.window.showInformationMessage('GPTP: Migrated to v1.2.0.');
       } catch (e: any) {

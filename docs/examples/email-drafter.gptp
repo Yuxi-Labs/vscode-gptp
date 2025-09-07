@@ -1,0 +1,17 @@
+{
+  "$doctype": "gptp",
+  "schemaVersion": "1.2.0",
+  "promptVersion": "1.0.0",
+  "title": "Email Drafter",
+  "description": "Draft a concise email with tone control and variables.",
+  "system": "You are a helpful assistant that writes clear, concise emails.",
+  "variables": [
+    { "name": "recipient", "required": true, "example": "Team" },
+    { "name": "topic", "required": true, "example": "Project update" },
+    { "name": "tone", "required": false, "example": "neutral" }
+  ],
+  "messages": [
+    { "role": "user", "content": "Draft an email to {{recipient}} about {{topic}}. Keep it under 120 words and use a {{tone}} tone." }
+  ],
+  "output_format": "markdown"
+}

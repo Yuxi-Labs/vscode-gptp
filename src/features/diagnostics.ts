@@ -48,7 +48,9 @@ export function activateDiagnostics(context: vscode.ExtensionContext) {
 			const used = new Set<string>();
 			const varRegex = /\{\{([a-zA-Z_][a-zA-Z0-9_]*)\}\}/g;
 			let m: RegExpExecArray | null;
-			while ((m = varRegex.exec(text))) { used.add(m[1]); }
+			while ((m = varRegex.exec(text))) { 
+				used.add(m[1]); 
+			}
 
 			// Missing variable diagnostics: highlight first occurrence of {{var}}
 			for (const v of used) {
@@ -91,11 +93,11 @@ export function activateDiagnostics(context: vscode.ExtensionContext) {
 			watcher,
 			watcher.onDidChange((uri) => {
 				const doc = vscode.workspace.textDocuments.find(d => d.uri.toString() === uri.toString());
-				if (doc) scheduleValidate(doc);
+				if (doc) { scheduleValidate(doc); }
 			}),
 			watcher.onDidCreate((uri) => {
 				const doc = vscode.workspace.textDocuments.find(d => d.uri.toString() === uri.toString());
-				if (doc) scheduleValidate(doc);
+				if (doc) { scheduleValidate(doc); }
 			}),
 			watcher.onDidDelete((uri) => collection.delete(uri))
 		);
@@ -103,7 +105,7 @@ export function activateDiagnostics(context: vscode.ExtensionContext) {
 
 	// Kick off an initial validation for all currently open GPTP docs
 	for (const doc of vscode.workspace.textDocuments) {
-		if (doc.languageId === 'gptp' && doc.uri.scheme !== 'git') scheduleValidate(doc);
+		if (doc.languageId === 'gptp' && doc.uri.scheme !== 'git') { scheduleValidate(doc); }
 	}
 }
 

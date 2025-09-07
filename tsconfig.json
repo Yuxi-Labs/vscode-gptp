@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-  "module": "ESNext",
+  "module": "NodeNext",
     "target": "ES2022",
   "lib": ["ES2022", "DOM"],
   "types": ["node", "vscode", "mocha"],
@@ -10,7 +10,7 @@
     "strict": true,
 
     /* Module resolution */
-  "moduleResolution": "Bundler",
+  "moduleResolution": "NodeNext",
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "typeRoots": [

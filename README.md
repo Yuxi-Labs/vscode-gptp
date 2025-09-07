@@ -6,10 +6,12 @@
   <img src="https://img.shields.io/github/issues/Yuxi-Labs/vscode-gptp" alt="Open Issues" />
   <img src="https://img.shields.io/github/issues-pr/Yuxi-Labs/vscode-gptp" alt="Pull Requests" />
   <img src="https://img.shields.io/github/last-commit/Yuxi-Labs/vscode-gptp" alt="Last Commit" />
-  <img src="https://img.shields.io/badge/License-Yuxi%20Labs%20License-orange" alt="License: Yuxi Labs License" />
+  <img src="https://img.shields.io/badge/License-MIT-blue" alt="License: MIT" />
 </p>
 
 GPT Prompt (GPTP) adds first-class editing support for GPTP files in VS Code. It brings schema-aware validation, helpful diagnostics, completions, hovers, and handy commands so you can author prompts quickly and confidently. The extension targets GPTP schema v1.2.0 and includes an offline schema fallback so validation works even without network access.
+
+• New to GPTP here? See the Quickstart in docs/quickstart.md and ready-to-run examples in docs/examples/.
 
 ## Installation
 
@@ -60,43 +62,44 @@ Create a new GPTP document using the built‑in command “New GPT Prompt File�
 
 As you type, the Problems panel will surface issues from the schema and semantic checks. Try referencing a variable that hasn’t been declared or declaring one you don’t use to see quick fixes in action.
 
+## Run with Model: what you’ll see
 
-## Running GPTP prompts with LM Studio
+When you run “GPTP: Run with Model,” the extension:
 
-You can send your `.gptp` prompt to a local LLM running in [LM Studio](https://lmstudio.ai/) using the included runner script. This lets you preview real model completions for your prompt, with variable substitution, directly from the command line.
+- Prompts you only for required variables (with an option to reuse the last inputs).
+- Executes via the GPTP Core SDK (no network calls for preview-only; provider calls when running with a configured provider).
+- Opens a new, unsaved Markdown tab that shows:
+  - resolvedMessages (JSON) — the final messages after variable interpolation
+  - modelOutput (formatted) — formatted output according to the prompt’s output_format, when possible
 
-### Prerequisites
+Nothing is written to disk unless you save that tab.
 
-- LM Studio is running (default: http://localhost:1234/v1) and your desired model (e.g., `openai/gpt-oss-20b`) is loaded.
-- Your prompt file exists (e.g., `docs/examples/faq-generator.gptp`).
+To tweak behavior, open Settings and search for “GPTP” to configure validation-before-run, timeout, retry policy, and optional HTTP fallback to an OpenAI‑compatible endpoint (disabled by default).
 
-### Example usage
+## Examples
 
-In your project root, run:
+Open any of these examples from docs/examples/ and try “GPTP: Validate,” “GPTP: Execute Preview,” and “GPTP: Run with Model”:
 
-```sh
-npm run lmstudio -- --file docs/examples/faq-generator.gptp --var topic="Artificial Intelligence" --var audience="Skeptics"
-```
+- docs/examples/hello-world.gptp — Minimal prompt with one variable
+- docs/examples/faq-football.gptp — Produces a neutral FAQ (5 Q&A)
+- docs/examples/email-drafter.gptp — Drafts a concise email with tone control
 
-You should see the LLM's response printed in your terminal.
+If you want to create your own, use “New GPT Prompt File” to insert a v1.2.0 scaffold.
 
-#### Notes
-- You can supply as many `--var key=value` arguments as your prompt requires.
-- The runner will always POST to the correct OpenAI-compatible endpoint (`/v1/chat/completions`).
-- If LM Studio is running on a different port or host, use the `--base` flag:
-  ```sh
-  npm run lmstudio -- --file ... --base http://localhost:5678/v1 ...
-  ```
 
-### Troubleshooting
-- If you see an error about an unexpected endpoint, make sure the base URL ends with `/v1`.
-- If you get a connection error, check that LM Studio is running and the model is loaded.
-- If your prompt expects variables, supply them with `--var` as shown above.
-
----
 
 The command palette (Ctrl/Cmd+Shift+P) provides several helpful actions while authoring:
+### Run with Model settings and reuse
 
+- Open Settings and search for "GPTP" to configure:
+  - Validate before run
+  - Timeout (ms)
+  - Retry policy: retries, base/max delay, jitter
+  - Optional lockfile path
+
+- When you run "GPTP: Run with Model" again on the same file, you can choose:
+  - Run again with last inputs (reuses your previous variables)
+  - Enter inputs… (prompt for required variables)
 - New GPT Prompt File: Creates a new v1.2.0 scaffold in the current editor.
 - GPTP: Validate Current Prompt: Runs validation and summarizes results.
 - GPTP: Execute Preview (Resolved Messages): Resolves variables and shows a preview of messages alongside a mock model output (no remote calls).
@@ -124,13 +127,18 @@ The extension validates GPTP files using the GPTP Core SDK first. If the network
 - Build and typecheck using the project scripts; the output is emitted to `dist/` and includes the offline schema.
 - To package a VSIX from source, use the standard VS Code extension packaging workflow. After packaging, you can install the `.vsix` file into any VS Code instance and validate the editing experience end‑to‑end.
 
+Additional docs:
+
+- docs/quickstart.md — fast path to install and run
+- docs/commands.md — list of commands and what they do
+
 ## Security and privacy
 
 This extension performs local validation and inspection of your GPTP files. It does not transmit prompt contents to external services as part of the editor features. The “Execute Preview” command runs locally against the SDK in a non‑running mode (preview only).
 
 ## License
 
-This project is licensed under the Yuxi Labs License (non‑commercial). See `LICENSE.md` for full terms.
+MIT © 2025 William Sawyerr. See `LICENSE.md` for details.
 
 ## Changelog
 

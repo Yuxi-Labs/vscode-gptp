@@ -1,0 +1,24 @@
+{
+  "$doctype": "gptp",
+  "schemaVersion": "1.2.0",
+  "promptVersion": "1.0.0",
+  "title": "Football FAQ",
+  "description": "Neutral FAQ with 5 Q&A for students.",
+  "system": "Always provide factual, structured answers and avoid speculation.",
+  "variables": [],
+  "messages": [
+    {
+      "role": "user",
+      "content": "Create an FAQ about football for students. Use a neutral and helpful tone, with an introductory level, formatted as bullet points. Include 5 Q&A items."
+    },
+    {
+      "role": "assistant",
+      "content": "Acknowledged. I will produce the requested FAQ with the specified constraints."
+    },
+    {
+      "role": "user",
+      "content": "Ensure answers are concise (1–3 sentences) and avoid marketing language."
+    }
+  ],
+  "output_format": "markdown"
+}

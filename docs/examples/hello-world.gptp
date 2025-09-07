@@ -1,0 +1,15 @@
+{
+  "$doctype": "gptp",
+  "schemaVersion": "1.2.0",
+  "promptVersion": "1.0.0",
+  "title": "Hello World",
+  "description": "Minimal example with one variable.",
+  "system": "You are a helpful assistant.",
+  "variables": [
+    { "name": "name", "description": "Name to greet", "required": true, "example": "World" }
+  ],
+  "messages": [
+    { "role": "user", "content": "Say hello to {{name}}." }
+  ],
+  "output_format": "markdown"
+}

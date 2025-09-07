@@ -1,22 +1,29 @@
 # Editor & test runner configs
 .vscode/**
 .vscode-test/**
+**/.vscode-test.*
 
-# Development source
+# Development sources (we ship dist/** only)
 src/**
+scripts/**
+out/**
 **/*.ts
 **/*.map
 
-# Test config
-**/.vscode-test.*
-
-# Build/test tools
+# VCS and misc
+.git/**
+.github/**
 .gitignore
 .yarnrc
-esbuild.js
-vsc-extension-quickstart.md
-**/tsconfig.json
-**/eslint.config.mjs
+.DS_Store
+Thumbs.db
 
-# DO NOT ignore the compiled extension
-# out/** ← this line is removed intentionally
+# Build/tooling/docs not needed at runtime
+esbuild.js
+**/tsconfig.json
+**/tsconfig.*.json
+**/eslint.config.mjs
+vsc-extension-quickstart.md
+package-lock.json
+
+# Keep: dist/**, assets/**, syntaxes/**, language-configuration.json, snippets/**, README.md, LICENSE.md
