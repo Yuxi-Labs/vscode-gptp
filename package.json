@@ -2,7 +2,7 @@
   "name": "vscode-gptp",
   "displayName": "GPT Prompt (GPTP)",
   "description": "Adds support for developing GPT Prompts in Visual Studio Code.",
-  "version": "0.2.0",
+  "version": "0.2.5",
   "publisher": "yuxi-labs",
   "icon": "assets/images/icons/gptp-icon.png",
   "type": "module",
@@ -18,17 +18,24 @@
   "engines": {
     "vscode": "^1.102.0"
   },
+  "activationEvents": [
+    "onLanguage:gptp",
+    "onCommand:gptp.newPrompt"
+  ],
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "workspaceContains:**/*.gptp"
-  ],
+  
   "main": "./dist/extension.js",
   "contributes": {
     "configuration": {
       "title": "GPT Prompt (GPTP)",
       "properties": {
+        "gptp.autoDetectPasted": {
+          "type": "boolean",
+          "default": false,
+          "description": "If enabled, attempt to detect pasted/opened GPTP JSON in non-.gptp files and switch the language mode. Disabled to avoid scanning unrelated files."
+        },
         "gptp.run.validate": {
           "type": "boolean",
           "default": true,
@@ -200,7 +207,7 @@
     "llm"
   ],
   "dependencies": {
-    "@yuxilabs/gptp-core": "^0.3.0",
+    "@yuxilabs/gptp-core": "^0.3.1",
     "ajv": "^8.17.1",
     "jsonc-parser": "^3.2.1"
   }

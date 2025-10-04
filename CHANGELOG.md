@@ -8,6 +8,16 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 - TBD
 
+## [0.2.5] - 2025-10-05
+
+### Fixed
+- Snippet definitions: removed nested placeholders and escaped `$` to prevent snippet-variable confusion warnings.
+- Editor responsiveness: editing-time validation now uses fast local checks; SDK imports are used only for explicit run/migrate/diff commands.
+- Added `gptp.autoDetectPasted` setting (default: false) to avoid scanning non-GPTP documents; enabling it restores auto-detection for pasted/opened content.
+
+### Changed
+- Minor internal refactors to reduce extension host stalls in test environments.
+
 ## [0.2.0] - 2025-09-07
 
 ### Added

@@ -83,7 +83,28 @@ export function activateDiagnostics(context) {
     };
     context.subscriptions.push(vscode.workspace.onDidOpenTextDocument((doc) => scheduleValidate(doc)));
     context.subscriptions.push(vscode.workspace.onDidChangeTextDocument((e) => scheduleValidate(e.document)));
+    // Also revalidate on save to ensure stale diagnostics are cleared automatically
+    context.subscriptions.push(vscode.workspace.onDidSaveTextDocument((doc) => scheduleValidate(doc)));
+    // Revalidate when files change on disk (e.g., external edits or SCM checkout)
+    const watcher = vscode.workspace.createFileSystemWatcher('**/*.gptp');
+    context.subscriptions.push(watcher, watcher.onDidChange((uri) => {
+        const doc = vscode.workspace.textDocuments.find(d => d.uri.toString() === uri.toString());
+        if (doc) {
+            scheduleValidate(doc);
+        }
+    }), watcher.onDidCreate((uri) => {
+        const doc = vscode.workspace.textDocuments.find(d => d.uri.toString() === uri.toString());
+        if (doc) {
+            scheduleValidate(doc);
+        }
+    }), watcher.onDidDelete((uri) => collection.delete(uri)));
     context.subscriptions.push(vscode.workspace.onDidCloseTextDocument((doc) => collection.delete(doc.uri)));
+    // Kick off an initial validation for all currently open GPTP docs
+    for (const doc of vscode.workspace.textDocuments) {
+        if (doc.languageId === 'gptp' && doc.uri.scheme !== 'git') {
+            scheduleValidate(doc);
+        }
+    }
 }
 function approximateRangeFromPointer(text, pointer) {
     try {

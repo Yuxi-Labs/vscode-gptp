@@ -27,22 +27,27 @@ export function activate(context: vscode.ExtensionContext) {
   // Handle any .gptp files already open
   activateExistingDocuments();
 
-  // Watch for pasted GPTP content
+  // Watch for pasted GPTP content (opt-in via setting)
   vscode.workspace.onDidChangeTextDocument((event: vscode.TextDocumentChangeEvent) => {
+    const cfg = vscode.workspace.getConfiguration('gptp');
+    if (!cfg.get<boolean>('autoDetectPasted', false)) { return; }
     const { document } = event;
-
     if (document.languageId === 'gptp') {return;}
-    if (!looksLikeGptp(document.getText())) {return;}
-
+    if (!shouldInspectForGptp(document)) { return; }
+    const text = document.getText();
+    if (!looksLikeGptp(text)) {return;}
     console.log(`[GPTP] Switching language for pasted content: ${document.uri.fsPath}`);
     vscode.languages.setTextDocumentLanguage(document, 'gptp');
   });
 
-  // Detect .gptp files or pasted content on open
+  // Detect GPTP content on open (opt-in via setting)
   vscode.workspace.onDidOpenTextDocument((document: vscode.TextDocument) => {
+    const cfg = vscode.workspace.getConfiguration('gptp');
+    if (!cfg.get<boolean>('autoDetectPasted', false)) { return; }
     if (document.languageId === 'gptp') {return;}
-    if (!looksLikeGptp(document.getText())) {return;}
-
+    if (!shouldInspectForGptp(document)) { return; }
+    const text = document.getText();
+    if (!looksLikeGptp(text)) {return;}
     console.log(`[GPTP] Switching language on open: ${document.uri.fsPath}`);
     vscode.languages.setTextDocumentLanguage(document, 'gptp');
   });
@@ -295,6 +300,22 @@ function looksLikeGptp(text: string): boolean {
   typeof json.schemaVersion === 'string' &&
   Array.isArray(json.messages)
     );
+  } catch {
+    return false;
+  }
+}
+
+function shouldInspectForGptp(document: vscode.TextDocument): boolean {
+  try {
+    // If it already has .gptp extension, allow
+    if (document.uri.fsPath.endsWith('.gptp')) { return true; }
+    // Only consider lightweight plaintext/JSON/untitled docs
+    const lang = document.languageId;
+    if (lang !== 'json' && lang !== 'plaintext' && lang !== 'untitled') { return false; }
+    // Avoid parsing very large files
+    const len = document.getText().length;
+    if (len > 200_000) { return false; }
+    return true;
   } catch {
     return false;
   }

@@ -3,7 +3,7 @@
     "prefix": "gptp-new",
     "body": [
   "{",
-  "  \"$doctype\": \"gptp\",",
+  "  \"\\$doctype\": \"gptp\",",
   "  \"schemaVersion\": \"1.2.0\",",
   "  \"promptVersion\": \"1.0.0\",",
   "  \"title\": \"${1:Prompt Name}\",",
@@ -20,7 +20,7 @@
   "  \"messages\": [",
   "    {",
   "      \"role\": \"user\",",
-  "      \"content\": \"Explain {{${3:topic}}} clearly.\"",
+  "      \"content\": \"Explain {{topic}} clearly.\"",
   "    }",
   "  ],",
   "  \"output_format\": \"${6|markdown,json,html,plain-text|}\"",
@@ -46,7 +46,7 @@
       "{",
       "  \"name\": \"${1:variableName}\",",
       "  \"description\": \"${2:What this variable does}\",",
-      "  \"required\": ${3:true},",
+      "  \"required\": ${7:true},",
       "  \"example\": \"${4:example value}\"",
       "}"
     ],

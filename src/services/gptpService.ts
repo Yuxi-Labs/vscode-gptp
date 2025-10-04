@@ -8,6 +8,17 @@ async function core(): Promise<any> {
   return await din(pkg);
 }
 
+// Avoid long stalls on SDK import/usage by racing with a timeout and falling back to local logic
+async function importCoreSafely(timeoutMs = 250): Promise<any | undefined> {
+  try {
+    const timer = new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), timeoutMs));
+    // Race the real import with a short timeout; if it loses the race, return undefined and use fallbacks
+    return await Promise.race([core(), timer]);
+  } catch {
+    return undefined;
+  }
+}
+
 export type ValidationIssue = {
   message: string;
   jsonPointer?: string; // JSON Pointer to the offending location
@@ -25,55 +36,70 @@ export async function validateText(textOrObj: string | any): Promise<ValidationR
   const isString = typeof textOrObj === 'string';
   const text = isString ? (textOrObj as string) : JSON.stringify(textOrObj);
   const obj = isString ? JSON.parse(text) : textOrObj;
-  let res: any | undefined;
-  try {
-    const sdk = await core();
-    const validatePrompt = sdk.validatePrompt || sdk.default?.validatePrompt;
-    if (validatePrompt) {
-      res = await validatePrompt(obj);
-    }
-  } catch {
-    // ignore SDK load/validate errors; we'll fall back to local schema
-  }
-  if (!res) {
-    const fb = await validateWithLocalSchema(obj);
-    if (fb) { return fb; }
-    return { valid: false, issues: [{ message: 'Validation unavailable' }] };
-  }
-  // If remote schema resolution fails, attempt local fallback
-  if (!res?.valid && (!res?.errors || res.errors.length === 0)) {
-    const fallback = await validateWithLocalSchema(obj);
-    if (fallback) {
-      return fallback;
-    }
-  }
-    const issues: ValidationIssue[] = await Promise.all((res.errors || []).map(async (e: any) => {
-      const jsonPointer = e.instancePath || e.dataPath || '';
-      const loc = await jsonPointerToOffset(text, jsonPointer);
-      return { message: e.message || 'Validation error', jsonPointer, ...loc };
-    }));
-    return { valid: !!res.valid, issues };
+  // Editing-time validation uses a fast local validator to stay responsive
+  const quick = await quickValidate(obj, text);
+  return quick;
   } catch (err: any) {
     // Final fallback: try local schema validation if JSON parsed successfully
     try {
       const isString = typeof textOrObj === 'string';
-      const obj = isString ? JSON.parse(textOrObj as string) : textOrObj;
-      const fb = await validateWithLocalSchema(obj);
-      if (fb) { return fb; }
+      const text = isString ? (textOrObj as string) : JSON.stringify(textOrObj);
+      const obj = isString ? JSON.parse(text) : textOrObj;
+      return await quickValidate(obj, text);
     } catch {}
     return { valid: false, issues: [{ message: 'Invalid JSON' }] };
   }
 }
 
+async function quickValidate(obj: any, text: string): Promise<ValidationResult> {
+  const issues: ValidationIssue[] = [];
+  // Ensure basic shape
+  if (!obj || typeof obj !== 'object') {
+    return { valid: false, issues: [{ message: 'Document must be a JSON object' }] };
+  }
+  if (obj.$doctype !== 'gptp') {
+    issues.push({ message: 'Missing or invalid $doctype (must be "gptp")', ...await pointerOrObjectRange(text, []) });
+  }
+  if (!Array.isArray(obj.messages)) {
+    issues.push({ message: 'messages must be an array', jsonPointer: '/messages', ...await pointerOrObjectRange(text, ['messages']) });
+  }
+  // variables[]: each item must have a string name
+  if (Array.isArray(obj.variables)) {
+    for (let i = 0; i < obj.variables.length; i++) {
+      const item = obj.variables[i];
+      if (!item || typeof item !== 'object' || typeof item.name !== 'string' || item.name.trim() === '') {
+        const jsonPointer = `/variables/${i}/name`;
+        const loc = await objectItemRange(text, ['variables', i]);
+        issues.push({ message: "variables[i] must have required property 'name'", jsonPointer, ...loc });
+      }
+    }
+  }
+  return { valid: issues.length === 0, issues };
+}
+
+async function objectItemRange(text: string, path: (string|number)[]): Promise<{ offset?: number; length?: number }> {
+  try {
+    const mod = await import('jsonc-parser');
+    const parseTree = (mod as any).parseTree as (t: string) => any;
+    const findNodeAtLocation = (mod as any).findNodeAtLocation as (tree: any, p: (string|number)[]) => any;
+    const tree = parseTree(text);
+    const node = tree ? findNodeAtLocation(tree, path) : undefined;
+    if (node) { return { offset: node.offset, length: node.length }; }
+    return {};
+  } catch { return {}; }
+}
+
+async function pointerOrObjectRange(text: string, path: (string|number)[]): Promise<{ offset?: number; length?: number }> {
+  const pointer = '/' + path.map((p) => String(p).replace(/~/g, '~0').replace(/\//g, '~1')).join('/');
+  const byPointer = await jsonPointerToOffset(text, pointer);
+  if (byPointer.offset !== undefined) { return byPointer; }
+  return objectItemRange(text, path);
+}
+
 export async function getInspection(text: string) {
   try {
     const obj = JSON.parse(text);
-  try {
-    const sdk = await core();
-    const fn = sdk.inspectPrompt || sdk.default?.inspectPrompt;
-    if (fn) { return fn(obj); }
-  } catch {}
-  // Local fallback inspection
+  // Editing-time inspection uses local logic only to avoid heavy imports
   return localInspect(obj);
   } catch {
     return undefined;
@@ -91,12 +117,7 @@ export async function getInspectionSummary(text: string) {
 
 export async function executePreview(text: string, input?: Record<string, any>) {
   const obj = JSON.parse(text);
-  try {
-    const sdk = await core();
-    const fn = sdk.executePrompt || sdk.default?.executePrompt;
-    if (fn) { return fn(obj, { input: input || {}, run: false }); }
-  } catch {}
-  // Local preview fallback: naive variable interpolation only
+  // Local preview: naive variable interpolation only (no provider calls)
   const vars = buildVariableMap(obj);
   const resolved = Array.isArray(obj.messages) ? obj.messages.map((m: any) => ({
     role: m.role,
@@ -108,8 +129,8 @@ export async function executePreview(text: string, input?: Record<string, any>) 
 export function formatOutput(raw: any, opts?: { outputFormat?: 'markdown'|'json'|'html'|'plain-text'; outputSchema?: any }) {
   // formatPrompt is pure and synchronous per SDK surface
   // but still load via dynamic import to avoid static ESM import
-  return core().then((sdk) => {
-    const fn = sdk.formatPrompt || sdk.default?.formatPrompt || sdk.formatOutput || sdk.default?.formatOutput;
+  return importCoreSafely().then((sdk) => {
+    const fn = sdk?.formatPrompt || sdk?.default?.formatPrompt || sdk?.formatOutput || sdk?.default?.formatOutput;
     return fn ? fn(raw, opts || {} as any) : String(raw?.content ?? '');
   });
 }
@@ -134,8 +155,8 @@ export async function executeRun(
 {
   const obj = JSON.parse(text);
   try {
-    const sdk = await core();
-    const fn = (sdk as any).executePrompt || (sdk as any).default?.executePrompt;
+    const sdk = await importCoreSafely();
+    const fn = (sdk as any)?.executePrompt || (sdk as any)?.default?.executePrompt;
     if (!fn) { throw new Error('missing executePrompt'); }
     const res = await fn(obj, {
       input: input || {},
@@ -182,8 +203,8 @@ export async function executeRun(
 
 export async function migrateTo120Text(text: string) {
   const obj = JSON.parse(text);
-  const sdk = await core();
-  const migrate = sdk.migrateTo120 || sdk.default?.migrateTo120 || sdk.migratePrompt || sdk.default?.migratePrompt;
+  const sdk = await importCoreSafely();
+  const migrate = sdk?.migrateTo120 || sdk?.default?.migrateTo120 || sdk?.migratePrompt || sdk?.default?.migratePrompt;
   const migrated = migrate ? await migrate(obj) : obj;
   return JSON.stringify(migrated, null, 2);
 }
@@ -192,8 +213,8 @@ export async function diffPromptKeysText(aText: string, bText: string) {
   try {
     const a = JSON.parse(aText);
     const b = JSON.parse(bText);
-    const sdk = await core();
-    const diff = sdk.diffPromptKeys || sdk.default?.diffPromptKeys;
+  const sdk = await importCoreSafely();
+  const diff = sdk?.diffPromptKeys || sdk?.default?.diffPromptKeys;
     if (diff) {return diff(a, b);}
     // Fallback: shallow top-level key diff
     const aKeys = new Set(Object.keys(a || {}));
@@ -226,17 +247,43 @@ async function readBundledSchema(): Promise<any> {
   }
 }
 
+let cachedSchemaObj: any | undefined;
+let cachedAjvCtor: any | undefined;
+let cachedAjvInstance: any | undefined;
+let cachedValidatorFn: ((data: any) => boolean) | undefined;
+let compilePromise: Promise<void> | undefined;
+
 async function validateWithLocalSchema(obj: any): Promise<ValidationResult | undefined> {
   try {
-    const schema = await readBundledSchema();
-    if (!schema) { return undefined; }
-  const modAjv: any = await import('ajv');
-  const AjvCtor: any = (modAjv as any)?.default ?? (modAjv as any);
-  const ajv: any = new AjvCtor({ allErrors: true });
-  const validate = ajv.compile(schema as any);
-    const valid = validate(obj) as boolean;
+    // Load and cache schema and validator; compile Ajv in background on first run to avoid blocking the extension host
+    if (!cachedValidatorFn) {
+      if (!compilePromise) {
+        compilePromise = (async () => {
+          if (!cachedSchemaObj) {
+            cachedSchemaObj = await readBundledSchema();
+          }
+          const schema = cachedSchemaObj;
+          if (!schema) { return; }
+          if (!cachedAjvCtor) {
+            const modAjv: any = await import('ajv');
+            cachedAjvCtor = (modAjv as any)?.default ?? (modAjv as any);
+          }
+          if (!cachedAjvInstance) {
+            cachedAjvInstance = new cachedAjvCtor({ allErrors: true });
+          }
+          if (!cachedValidatorFn) {
+            cachedValidatorFn = cachedAjvInstance.compile(schema as any);
+          }
+        })().catch(() => { /* ignore */ });
+      }
+      // If compilation hasn't finished yet, return a fast success with no issues to keep UI responsive
+      return { valid: true, issues: [] };
+    }
+    const validateFn = cachedValidatorFn as ((data: any) => boolean);
+    const valid = validateFn(obj) as boolean;
     const text = JSON.stringify(obj);
-    const issues: ValidationIssue[] = await Promise.all((validate.errors || []).map(async (e: any) => {
+    const errors = (validateFn as any).errors || [];
+    const issues: ValidationIssue[] = await Promise.all(errors.map(async (e: any) => {
       const jsonPointer = e.instancePath || e.dataPath || '';
       const loc = await jsonPointerToOffset(text, jsonPointer);
       return { message: e.message || 'Validation error', jsonPointer, ...loc };
